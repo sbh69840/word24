@@ -5,7 +5,7 @@
 -- Module      :  Data.Int.Int24
 -- Copyright   :  (c) The University of Glasgow 1997-2002
 -- License     :  see src/Data/LICENSE
--- 
+--
 -- Stability   :  experimental
 -- Portability :  non-portable (GHC Extensions)
 --
@@ -141,33 +141,40 @@ instance Read Int24 where
 
 instance Bits Int24 where
     {-# INLINE shift #-}
+    {-# INLINE bit #-}
+    {-# INLINE testBit #-}
 
     (I24# x#) .&.   (I24# y#)  = I24# (word2Int# (int2Word# x# `and#` int2Word# y#))
     (I24# x#) .|.   (I24# y#)  = I24# (word2Int# (int2Word# x# `or#`  int2Word# y#))
     (I24# x#) `xor` (I24# y#)  = I24# (word2Int# (int2Word# x# `xor#` int2Word# y#))
-    complement (I24# x#)       = I24# (word2Int# (int2Word# x# `xor#` int2Word# (-1#)))
+    complement (I24# x#)       = I24# (word2Int# (not# (int2Word# x#)))
     (I24# x#) `shift` (I# i#)
-        | primBool (i# >=# 0# )  = I24# (narrow24Int# (x# `iShiftL#` i#))
-        | otherwise              = I24# (x# `iShiftRA#` negateInt# i#)
-    (I24# x#) `rotate` i
-        | primBool (i'# ==# 0# ) = I24# x#
+        | isTrue# (i# >=# 0#)  = I24# (narrow24Int# (x# `iShiftL#` i#))
+        | otherwise            = I24# (x# `iShiftRA#` negateInt# i#)
+    (I24# x#) `shiftL`       (I# i#) = I24# (narrow24Int# (x# `iShiftL#` i#))
+    (I24# x#) `unsafeShiftL` (I# i#) = I24# (narrow24Int# (x# `uncheckedIShiftL#` i#))
+    (I24# x#) `shiftR`       (I# i#) = I24# (x# `iShiftRA#` i#)
+    (I24# x#) `unsafeShiftR` (I# i#) = I24# (x# `uncheckedIShiftRA#` i#)
+    (I24# x#) `rotate` (I# i#)
+        | isTrue# (i'# ==# 0#)
+        = I24# x#
         | otherwise
         = I24# (narrow24Int# (word2Int# ((x'# `uncheckedShiftL#` i'#) `or#`
                                          (x'# `uncheckedShiftRL#` (24# -# i'#)))))
         where
-          !x'# = narrow24Word# (int2Word# x#)
-          !(I# i0#)    = i `mod` 24
-          !i'# = word2Int# (narrow24Word# (int2Word# i0#))
-    bitSize  _                 = 24
+        !x'# = narrow24Word# (int2Word# x#)
+        !i'# = word2Int# (int2Word# i# `and#` 15##)
+    bitSizeMaybe i             = Just (finiteBitSize i)
+    bitSize i                  = finiteBitSize i
     isSigned _                 = True
+    popCount (I24# x#)         = I# (word2Int# (popCnt24# (int2Word# x#)))
+    bit                        = bitDefault
+    testBit                    = testBitDefault
 
-    {-# INLINE shiftR #-}
-    -- same as the default definition, but we want it inlined (#2376)
-    x `shiftR`  i = x `shift`  (-i)
-    bit n                     = case bit n of
-        I32# x -> I24# (narrow24Int# x)
-    testBit x i  = (x .&. bit i) /= 0
-    popCount (I24# x#) = popCount (W# (narrow24Word# (int2Word# x#)))
+instance FiniteBits Int24 where
+    finiteBitSize _ = 24
+    countLeadingZeros  (I24# x#) = I# (word2Int# (clz24# (int2Word# x#)))
+    countTrailingZeros (I24# x#) = I# (word2Int# (ctz24# (int2Word# x#)))
 
 {-# RULES
 "fromIntegral/Word8->Int24"   fromIntegral = \(W8# x#) -> I24# (word2Int# x#)
@@ -177,7 +184,37 @@ instance Bits Int24 where
 "fromIntegral/Int24->Int24"   fromIntegral = id :: Int24 -> Int24
 "fromIntegral/a->Int24"       fromIntegral = \x -> case fromIntegral x of I# x# -> I24# (narrow24Int# x#)
 "fromIntegral/Int24->a"       fromIntegral = \(I24# x#) -> fromIntegral (I# x#)
-  #-}
+    #-}
+
+{-# RULES
+"properFraction/Float->(Int24,Float)"
+    properFraction = \x ->
+                      case properFraction x of {
+                        (n, y) -> ((fromIntegral :: Int -> Int24) n, y :: Float) }
+"truncate/Float->Int24"
+    truncate = (fromIntegral :: Int -> Int24) . (truncate :: Float -> Int)
+"floor/Float->Int24"
+    floor    = (fromIntegral :: Int -> Int24) . (floor :: Float -> Int)
+"ceiling/Float->Int24"
+    ceiling  = (fromIntegral :: Int -> Int24) . (ceiling :: Float -> Int)
+"round/Float->Int24"
+    round    = (fromIntegral :: Int -> Int24) . (round  :: Float -> Int)
+    #-}
+
+{-# RULES
+"properFraction/Double->(Int24,Double)"
+    properFraction = \x ->
+                      case properFraction x of {
+                        (n, y) -> ((fromIntegral :: Int -> Int24) n, y :: Double) }
+"truncate/Double->Int24"
+    truncate = (fromIntegral :: Int -> Int24) . (truncate :: Double -> Int)
+"floor/Double->Int24"
+    floor    = (fromIntegral :: Int -> Int24) . (floor :: Double -> Int)
+"ceiling/Double->Int24"
+    ceiling  = (fromIntegral :: Int -> Int24) . (ceiling :: Double -> Int)
+"round/Double->Int24"
+    round    = (fromIntegral :: Int -> Int24) . (round  :: Double -> Int)
+    #-}
 
 instance Storable Int24 where
   sizeOf _ = 3

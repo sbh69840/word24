@@ -9,12 +9,18 @@
 
 -- Provide a 24-bit unsigned integral type: 'Word24', analagous to Word8,
 -- Word16, etc.
--- 
+--
 
 -- #hide
 module Data.Word.Word24 (
-  Word24(..)
-  ,narrow24Word#
+  -- * Word24 type
+    Word24(..)
+  , byteSwap24
+  -- * Internal helpers
+  , narrow24Word#
+  , clz24#
+  , ctz24#
+  , popCnt24#
   )
 
 where
@@ -34,14 +40,29 @@ import GHC.Err
 -- Word24 is represented in the same way as Word.  Operations may assume and
 -- must ensure that it holds only values in its logical range.
 
+-- | 24-bit unsigned integer type
+--
 data Word24 = W24# Word# deriving (Eq, Ord)
--- ^ 24-bit unsigned integer type
 
--- the narrowings are represented as primops in GHC.  I don't have that
--- luxury...
-
+-- | narrowings represented as primop 'and#' in GHC.
 narrow24Word# :: Word# -> Word#
-narrow24Word# x# = x# `and#` (int2Word# 0xFFFFFF#)
+narrow24Word# = and# 0xFFFFFF##
+
+-- | count leading zeros
+--
+clz24# :: Word# -> Word#
+clz24# w# = clz# (or# (not# 0xFFFFFF##) w#)
+
+-- | count trailing zeros
+--
+ctz24# :: Word# -> Word#
+ctz24# w# = let x = ctz16# (uncheckedShiftRL# w# 8#)
+            in plusWord# x (timesWord# (int2Word# (eqWord# 16## x)) (ctz8# w#))
+
+-- | the number of set bits
+--
+popCnt24# :: Word# -> Word#
+popCnt24# w# = popCnt# (narrow24Word# w#)
 
 instance Show Word24 where
   showsPrec p x = showsPrec p (fromIntegral x :: Int)
@@ -108,38 +129,49 @@ instance Read Word24 where
   readsPrec p s = [(fromIntegral (x::Int), r) | (x, r) <- readsPrec p s]
 
 instance Bits Word24 where
-  {-# INLINE shift #-}
+    {-# INLINE shift #-}
+    {-# INLINE bit #-}
+    {-# INLINE testBit #-}
 
-  (W24# x#) .&.   (W24# y#) = W24# (x# `and#` y#)
-  (W24# x#) .|.   (W24# y#) = W24# (x# `or#` y#)
-  (W24# x#) `xor` (W24# y#) = W24# (x# `xor#` y#)
-  complement (W24# x#)      = W24# (x# `xor#` mb#) where !(W24# mb#) = maxBound
-  (W24# x#) `shift` (I# i#)
-    | primBool (i# >=# 0#)  = W24# (narrow24Word# (x# `shiftL#` i#))
-    | otherwise             = W24# (x# `shiftRL#` negateInt# i#)
-  (W24# x#) `rotate` i
-    | primBool (i'# ==# 0#) = W24# x#
-    | otherwise  = W24# (narrow24Word# ((x# `uncheckedShiftL#` i'#) `or#`
-                                        (x# `uncheckedShiftRL#` (24# -# i'#))))
-    where
-      !(I# i'#) = i `mod` 24
-  bitSize _                 = 24
-  isSigned _                = False
-  bit n                     = case bit n of
-      W32# x -> W24# (narrow24Word# x)
-  testBit (W24# x) n        = testBit (W32# x) n
-  popCount (W24# x)         = popCount (W32# x)
+    (W24# x#) .&.   (W24# y#)  = W24# (x# `and#` y#)
+    (W24# x#) .|.   (W24# y#)  = W24# (x# `or#`  y#)
+    (W24# x#) `xor` (W24# y#)  = W24# (x# `xor#` y#)
+    complement (W24# x#)       = W24# (x# `xor#` mb#) where !(W24# mb#) = maxBound
+    (W24# x#) `shift` (I# i#)
+        | isTrue# (i# >=# 0#)  = W24# (narrow24Word# (x# `shiftL#` i#))
+        | otherwise            = W24# (x# `shiftRL#` negateInt# i#)
+    (W24# x#) `shiftL` (I# i#)       = W24# (narrow24Word# (x# `shiftL#` i#))
+    (W24# x#) `unsafeShiftL` (I# i#) =
+        W24# (narrow24Word# (x# `uncheckedShiftL#` i#))
+    (W24# x#) `shiftR`       (I# i#) = W24# (x# `shiftRL#` i#)
+    (W24# x#) `unsafeShiftR` (I# i#) = W24# (x# `uncheckedShiftRL#` i#)
+    (W24# x#) `rotate`       (I# i#)
+        | isTrue# (i'# ==# 0#) = W24# x#
+        | otherwise  = W24# (narrow24Word# ((x# `uncheckedShiftL#` i'#) `or#`
+                                            (x# `uncheckedShiftRL#` (24# -# i'#))))
+        where
+            !i'# = word2Int# (int2Word# i# `and#` 15##)
+    bitSizeMaybe i            = Just (finiteBitSize i)
+    bitSize i                 = finiteBitSize i
+    isSigned _                = False
+    popCount (W24# x#)        = I# (word2Int# (popCnt24# x#))
+    bit                       = bitDefault
+    testBit                   = testBitDefault
 
-  {-# INLINE shiftR #-}
-  x `shiftR` i = x `shift` (-i)
+instance FiniteBits Word24 where
+    finiteBitSize _ = 24
+    countLeadingZeros  (W24# x#) = I# (word2Int# (clz24# x#))
+    countTrailingZeros (W24# x#) = I# (word2Int# (ctz24# x#))
 
-#if MIN_VERSION_base(4,7,0)
-primBool :: Int# -> Bool
-primBool x = tagToEnum# x
-#else
-primBool :: Bool -> Bool
-primBool = id
-#endif
+-- | Swap bytes in 'Word24'.
+byteSwap24 :: Word24 -> Word24
+byteSwap24 (W24# w#) = W24# (narrow24Word# (byteSwap24# w#))
+  where
+    byteSwap24# :: Word# -> Word#
+    byteSwap24# w# = let byte0 = uncheckedShiftL#  (and# w# 0xff0000##) 16#
+                         byte1 = uncheckedShiftL#  (and# w# 0x00ff00##)  8#
+                         byte2 = uncheckedShiftRL# (and# w# 0x0000ff##) 16#
+                     in and# byte0 (and# byte1 byte2)
 
 {-# RULES
 "fromIntegral/Word8->Word24"    fromIntegral = \(W8# x#) -> W24# x#
@@ -148,11 +180,26 @@ primBool = id
 "fromIntegral/Word24->Integer"  fromIntegral = toInteger :: Word24 -> Integer
 "fromIntegral/a->Word24"        fromIntegral = \x -> case fromIntegral x of W# x# -> W24# (narrow24Word# x#)
 "fromIntegral/Word24->a"        fromIntegral = \(W24# x#) -> fromIntegral (W# x#)
-  #-}
+    #-}
+
+{-# RULES
+"properFraction/Double->(Word24,Double)"
+    properFraction = \x ->
+                      case properFraction x of {
+                        (n, y) -> ((fromIntegral :: Int -> Word24) n, y :: Double) }
+"truncate/Double->Word24"
+    truncate = (fromIntegral :: Int -> Word24) . (truncate :: Double -> Int)
+"floor/Double->Word24"
+    floor    = (fromIntegral :: Int -> Word24) . (floor :: Double -> Int)
+"ceiling/Double->Word24"
+    ceiling  = (fromIntegral :: Int -> Word24) . (ceiling :: Double -> Int)
+"round/Double->Word24"
+    round    = (fromIntegral :: Int -> Word24) . (round  :: Double -> Int)
+    #-}
 
 readWord24OffPtr :: Ptr Word24 -> IO Word24
 readWord24OffPtr p = do
-  let p' = (castPtr p) :: Ptr Word8
+  let p' = castPtr p :: Ptr Word8
   w1 <- peekElemOff p' 0
   w2 <- peekElemOff p' 1
   w3 <- peekElemOff p' 2
@@ -165,8 +212,8 @@ readWord24OffPtr p = do
 writeWord24ToPtr :: Ptr Word24 -> Word24 -> IO ()
 writeWord24ToPtr p v = do
     let w1 = fromIntegral (v .&. 0x0000FF) :: Word8
-        w2 = (fromIntegral ((v .&. 0x00FF00) `shiftR` 8)) :: Word8
-        w3 = (fromIntegral ((v .&. 0xFF0000) `shiftR` 16)) :: Word8
+        w2 = fromIntegral ((v .&. 0x00FF00) `shiftR` 8) :: Word8
+        w3 = fromIntegral ((v .&. 0xFF0000) `shiftR` 16) :: Word8
     pokeByteOff p 0 w1
     pokeByteOff p 1 w2
     pokeByteOff p 2 w3
@@ -174,6 +221,6 @@ writeWord24ToPtr p v = do
 instance Storable Word24 where
   sizeOf _    = 3
   alignment _ = 3
-  peek p      = readWord24OffPtr p
-  poke p v    = writeWord24ToPtr p v
+  peek        = readWord24OffPtr
+  poke        = writeWord24ToPtr
 
