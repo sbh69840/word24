@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 import Prelude as P
 
 import Test.Framework (defaultMain, testGroup)
@@ -133,6 +135,32 @@ prop_rotate a b = (a `rotate` b) `rotate` (negate b) == a
 prop_comp a = complement (complement a) == a
   where types = a :: Word24
 
+prop_byteSwap a = byteSwap24 (byteSwap24 a) == a
+  where types = a :: Word24
+
+#if MIN_VERSION_base(4,8,0)
+prop_clz a = countLeadingZeros a == countLeadingZeros' a
+  where
+    countLeadingZeros' :: Word24 -> Int
+    countLeadingZeros' x = (w-1) - go (w-1)
+      where
+        go i | i < 0       = i -- no bit set
+             | testBit x i = i
+             | otherwise   = go (i-1)
+
+        w = finiteBitSize x
+
+prop_ctz a = countTrailingZeros a == countTrailingZeros' a
+  where
+    countTrailingZeros' :: Word24 -> Int
+    countTrailingZeros' x = go 0
+      where
+        go i | i >= w      = i
+             | testBit x i = i
+             | otherwise   = go (i+1)
+        w = finiteBitSize x
+#endif
+
 prop_bit_ident q (NonNegative j) = testBit (bit j `asTypeOf` q) j == (j < 24)
 
 prop_popCount s t a = if a >= 0
@@ -263,6 +291,29 @@ prop_rotateI a b = (a `rotate` b) `rotate` (negate b) == a
 prop_compI a = complement (complement a) == a
   where types = a :: Int24
 
+#if MIN_VERSION_base(4,8,0)
+prop_clzI a = countLeadingZeros a == countLeadingZeros' a
+  where
+    countLeadingZeros' :: Int24 -> Int
+    countLeadingZeros' x = (w-1) - go (w-1)
+      where
+        go i | i < 0       = i -- no bit set
+             | testBit x i = i
+             | otherwise   = go (i-1)
+
+        w = finiteBitSize x
+
+prop_ctzI a = countTrailingZeros a == countTrailingZeros' a
+  where
+    countTrailingZeros' :: Int24 -> Int
+    countTrailingZeros' x = go 0
+      where
+        go i | i >= w      = i
+             | testBit x i = i
+             | otherwise   = go (i+1)
+        w = finiteBitSize x
+#endif
+
 -- Int Storable properties
 prop_sizeOfI a = sizeOf a == 3
   where types = a :: Int24
@@ -315,6 +366,11 @@ tests = [
     ,testProperty "binary shiftR" prop_shiftR2
     ,testProperty "binary rotate" prop_rotate
     ,testProperty "binary complement" prop_comp
+    ,testProperty "binary byteSwap24" prop_byteSwap
+#if MIN_VERSION_base(4,8,0)
+    ,testProperty "binary countLeadingZeros" prop_clz
+    ,testProperty "binary countTrailingZeros" prop_ctz
+#endif
     ,testProperty "bit/testBit" (prop_bit_ident (0::Word24))
     ,testProperty "popCount"    (prop_popCount (0::Word24) (0::Word))
     ]
@@ -363,6 +419,10 @@ tests = [
     ,testProperty "binary shiftR" prop_shiftR2I
     ,testProperty "binary rotate" prop_rotateI
     ,testProperty "binary complement" prop_compI
+#if MIN_VERSION_base(4,8,0)
+    ,testProperty "binary countLeadingZeros" prop_clzI
+    ,testProperty "binary countTrailingZeros" prop_ctzI
+#endif
     ,testProperty "bit/testBit" (prop_bit_ident (0::Int24))
     ,testProperty "popCount"    (prop_popCount (0::Int24) (0::Int))
     ]

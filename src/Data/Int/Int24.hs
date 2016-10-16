@@ -3,6 +3,10 @@
 {-# LANGUAGE MagicHash         #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
+#if !MIN_VERSION_base(4,8,0)
+{-# LANGUAGE DeriveDataTypeable #-}
+#endif
+
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Int.Int24
@@ -24,6 +28,7 @@ module Data.Int.Int24 (
   ) where
 
 import           Data.Bits
+import           Data.Data
 import           Data.Maybe
 import           Data.Word.Word24
 import           Foreign.Storable
@@ -41,8 +46,10 @@ import           GHC.Word
 
 import           Control.DeepSeq
 
-------------------------------------------------------------------------
--- type Int24
+#if !MIN_VERSION_base(4,8,0)
+import           Data.Typeable
+#endif
+
 ------------------------------------------------------------------------
 
 -- Int24 is represented in the same way as Int. Operations may assume
@@ -51,15 +58,30 @@ import           Control.DeepSeq
 -- | 24-bit signed integer type
 data Int24 = I24# Int# deriving (Eq, Ord)
 
+#if !MIN_VERSION_base(4,8,0)
+deriving instance Typeable Int24
+#endif
+
 instance NFData Int24  where rnf !_ = ()
+
+int24Type :: DataType
+int24Type = mkIntType "Data.Word.Int24.Int24"
+
+instance Data Int24 where
+  toConstr x = mkIntegralConstr int24Type x
+  gunfold _ z c = case constrRep c of
+                    (IntConstr x) -> z (fromIntegral x)
+                    _ -> error $ "Data.Data.gunfold: Constructor " ++ show c
+                                 ++ " is not of type Int24."
+  dataTypeOf _ = int24Type
 
 -- the narrowings are primops in GHC; I don't have that luxury.
 -- if the 24th bit (from right) is on, the value is negative, so
 -- fill the uppermost bits with 1s.  Otherwise clear them to 0s.
 narrow24Int# :: Int# -> Int#
 narrow24Int# x# = if isTrue# ((x'# `and#` mask#) `eqWord#` mask#)
-  then word2Int# ( x'# `or#` int2Word# m1# )
-  else word2Int# ( x'# `and#` (int2Word# m2#))
+    then word2Int# (x'# `or#`  int2Word# m1#)
+    else word2Int# (x'# `and#` int2Word# m2#)
   where
     !x'#   = int2Word# x#
     !mask# = int2Word# 0x00800000#
@@ -164,7 +186,7 @@ instance Bits Int24 where
         !x'# = narrow24Word# (int2Word# x#)
         !(I# i'#) = i `mod` 24
     bitSizeMaybe i             = Just (finiteBitSize i)
-    bitSize i                  = finiteBitSize i
+    bitSize                    = finiteBitSize
     isSigned _                 = True
     popCount (I24# x#)         = I# (word2Int# (popCnt24# (int2Word# x#)))
     bit                        = bitDefault

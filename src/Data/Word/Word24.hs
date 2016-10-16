@@ -3,6 +3,10 @@
 {-# LANGUAGE MagicHash         #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 
+#if !MIN_VERSION_base(4,8,0)
+{-# LANGUAGE DeriveDataTypeable #-}
+#endif
+
 -- |
 -- Module      : Data.Word.Word24
 -- License     : see  src/Data/LICENSE
@@ -17,6 +21,7 @@ module Data.Word.Word24 (
   -- * Word24 type
     Word24(..)
   , byteSwap24
+  , byteSwap24#
   -- * Internal helpers
   , narrow24Word#
 #if MIN_VERSION_base(4,8,0)
@@ -29,6 +34,7 @@ module Data.Word.Word24 (
 where
 
 import           Data.Bits
+import           Data.Data
 import           Data.Maybe
 import           Foreign.Storable
 
@@ -44,6 +50,12 @@ import           GHC.Word
 
 import           Control.DeepSeq
 
+#if !MIN_VERSION_base(4,8,0)
+import           Data.Typeable
+#endif
+
+------------------------------------------------------------------------
+
 -- Word24 is represented in the same way as Word.  Operations may assume and
 -- must ensure that it holds only values in its logical range.
 
@@ -51,7 +63,22 @@ import           Control.DeepSeq
 --
 data Word24 = W24# Word# deriving (Eq, Ord)
 
+#if !MIN_VERSION_base(4,8,0)
+deriving instance Typeable Word24
+#endif
+
 instance NFData Word24 where rnf !_ = ()
+
+word24Type :: DataType
+word24Type = mkIntType "Data.Word.Word24.Word24"
+
+instance Data Word24 where
+  toConstr x = mkIntegralConstr word24Type x
+  gunfold _ z c = case constrRep c of
+                    (IntConstr x) -> z (fromIntegral x)
+                    _ -> error $ "Data.Data.gunfold: Constructor " ++ show c
+                                 ++ " is not of type Word24."
+  dataTypeOf _ = word24Type
 
 -- | narrowings represented as primop 'and#' in GHC.
 narrow24Word# :: Word# -> Word#
@@ -61,13 +88,12 @@ narrow24Word# = and# 0xFFFFFF##
 -- | count leading zeros
 --
 clz24# :: Word# -> Word#
-clz24# w# = clz# (or# (not# 0xFFFFFF##) w#)
+clz24# w# = clz32# (narrow24Word# w#) `minusWord#` 8##
 
 -- | count trailing zeros
 --
 ctz24# :: Word# -> Word#
-ctz24# w# = let x = ctz16# (uncheckedShiftRL# w# 8#)
-            in plusWord# x (timesWord# (int2Word# (eqWord# 16## x)) (ctz8# w#))
+ctz24# w# = ctz# w#
 #endif
 
 -- | the number of set bits
@@ -163,7 +189,7 @@ instance Bits Word24 where
       where
         !(I# i'#) = i `mod` 24
     bitSizeMaybe i            = Just (finiteBitSize i)
-    bitSize i                 = finiteBitSize i
+    bitSize                   = finiteBitSize
     isSigned _                = False
     popCount (W24# x#)        = I# (word2Int# (popCnt24# x#))
     bit                       = bitDefault
@@ -177,14 +203,15 @@ instance FiniteBits Word24 where
 #endif
 
 -- | Swap bytes in 'Word24'.
+--
 byteSwap24 :: Word24 -> Word24
-byteSwap24 (W24# w#) = W24# (narrow24Word# (byteSwap24# w#))
-  where
-    byteSwap24# :: Word# -> Word#
-    byteSwap24# w# = let byte0 = uncheckedShiftL#  (and# w# 0xff0000##) 16#
-                         byte1 = uncheckedShiftL#  (and# w# 0x00ff00##)  8#
-                         byte2 = uncheckedShiftRL# (and# w# 0x0000ff##) 16#
-                     in and# byte0 (and# byte1 byte2)
+byteSwap24 (W24# w#) = W24# (byteSwap24# w#)
+
+byteSwap24# :: Word# -> Word#
+byteSwap24# w# = let byte0 = uncheckedShiftL# (and# w# 0x0000ff##) 16#
+                     byte1 = and# w# 0x00ff00##
+                     byte2 = uncheckedShiftRL# (and# w# 0xff0000##) 16#
+                 in byte0 `or#` byte1 `or#` byte2
 
 {-# RULES
 "fromIntegral/Word8->Word24"    fromIntegral = \(W8# x#) -> W24# x#
