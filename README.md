@@ -23,5 +23,3 @@ cabal install word24
 This library is pure Haskell, and should install on any system with a suitable
 Haskell compiler with no extra steps required.  In particular, POSIX-compatible,
 Mac OSX, and Windows should all be supported.
-
-INSTALLATION OPTIONS:
