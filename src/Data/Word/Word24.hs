@@ -35,7 +35,6 @@ import GHC.Real
 import GHC.Arr
 import GHC.Word
 import GHC.Ptr
-import GHC.Err
 
 import Control.DeepSeq
 
@@ -164,7 +163,7 @@ instance Bits Word24 where
 
 instance FiniteBits Word24 where
     finiteBitSize _ = 24
-#if !MIN_VERSION_base(4,8,0)
+#if MIN_VERSION_base(4,8,0)
     countLeadingZeros  (W24# x#) = I# (word2Int# (clz24# x#))
     countTrailingZeros (W24# x#) = I# (word2Int# (ctz24# x#))
 #endif
@@ -186,7 +185,22 @@ byteSwap24 (W24# w#) = W24# (narrow24Word# (byteSwap24# w#))
 "fromIntegral/Word24->Integer"  fromIntegral = toInteger :: Word24 -> Integer
 "fromIntegral/a->Word24"        fromIntegral = \x -> case fromIntegral x of W# x# -> W24# (narrow24Word# x#)
 "fromIntegral/Word24->a"        fromIntegral = \(W24# x#) -> fromIntegral (W# x#)
-    #-}
+  #-}
+
+{-# RULES
+"properFraction/Float->(Word24,Float)"
+    properFraction = \x ->
+                      case properFraction x of {
+                        (n, y) -> ((fromIntegral :: Int -> Word24) n, y :: Float) }
+"truncate/Float->Word24"
+    truncate = (fromIntegral :: Int -> Word24) . (truncate :: Float -> Int)
+"floor/Float->Word24"
+    floor    = (fromIntegral :: Int -> Word24) . (floor :: Float -> Int)
+"ceiling/Float->Word24"
+    ceiling  = (fromIntegral :: Int -> Word24) . (ceiling :: Float -> Int)
+"round/Float->Word24"
+    round    = (fromIntegral :: Int -> Word24) . (round  :: Float -> Int)
+  #-}
 
 {-# RULES
 "properFraction/Double->(Word24,Double)"
@@ -201,7 +215,7 @@ byteSwap24 (W24# w#) = W24# (narrow24Word# (byteSwap24# w#))
     ceiling  = (fromIntegral :: Int -> Word24) . (ceiling :: Double -> Int)
 "round/Double->Word24"
     round    = (fromIntegral :: Int -> Word24) . (round  :: Double -> Int)
-    #-}
+  #-}
 
 readWord24OffPtr :: Ptr Word24 -> IO Word24
 readWord24OffPtr p = do

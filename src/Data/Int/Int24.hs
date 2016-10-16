@@ -34,15 +34,8 @@ import GHC.Word
 import GHC.Int
 import GHC.Show
 import GHC.Ptr
-import GHC.Err
 
 import Control.DeepSeq
-
-#if __GLASGOW_HASKELL__ >= 702
-#define TOINT integerToInt
-#else
-#define TOINT toInt#
-#endif
 
 ------------------------------------------------------------------------
 -- type Int24
@@ -60,7 +53,7 @@ instance NFData Int24  where rnf !_ = ()
 -- if the 24th bit (from right) is on, the value is negative, so
 -- fill the uppermost bits with 1s.  Otherwise clear them to 0s.
 narrow24Int# :: Int# -> Int#
-narrow24Int# x# = if primBool ((x'# `and#` mask#) `eqWord#` mask#)
+narrow24Int# x# = if isTrue# ((x'# `and#` mask#) `eqWord#` mask#)
   then word2Int# ( x'# `or#` int2Word# m1# )
   else word2Int# ( x'# `and#` (int2Word# m2#))
   where
@@ -82,7 +75,7 @@ instance Num Int24 where
     signum x | x > 0       = 1
     signum 0               = 0
     signum _               = -1
-    fromInteger i          = I24# (narrow24Int# (TOINT i))
+    fromInteger i          = I24# (narrow24Int# (integerToInt i))
 
 instance Real Int24 where
     toRational x = toInteger x % 1
@@ -159,7 +152,7 @@ instance Bits Int24 where
     (I24# x#) `unsafeShiftL` (I# i#) = I24# (narrow24Int# (x# `uncheckedIShiftL#` i#))
     (I24# x#) `shiftR`       (I# i#) = I24# (x# `iShiftRA#` i#)
     (I24# x#) `unsafeShiftR` (I# i#) = I24# (x# `uncheckedIShiftRA#` i#)
-    (I24# x#) `rotate` i@(I# i#)
+    (I24# x#) `rotate` i
         | isTrue# (i'# ==# 0#) = I24# x#
         | otherwise = I24# (narrow24Int# (word2Int# ((x'# `uncheckedShiftL#` i'#) `or#`
                                          (x'# `uncheckedShiftRL#` (24# -# i'#)))))
@@ -175,7 +168,7 @@ instance Bits Int24 where
 
 instance FiniteBits Int24 where
     finiteBitSize _ = 24
-#if !MIN_VERSION_base(4,8,0)
+#if MIN_VERSION_base(4,8,0)
     countLeadingZeros  (I24# x#) = I# (word2Int# (clz24# (int2Word# x#)))
     countTrailingZeros (I24# x#) = I# (word2Int# (ctz24# (int2Word# x#)))
 #endif
@@ -188,7 +181,7 @@ instance FiniteBits Int24 where
 "fromIntegral/Int24->Int24"   fromIntegral = id :: Int24 -> Int24
 "fromIntegral/a->Int24"       fromIntegral = \x -> case fromIntegral x of I# x# -> I24# (narrow24Int# x#)
 "fromIntegral/Int24->a"       fromIntegral = \(I24# x#) -> fromIntegral (I# x#)
-    #-}
+  #-}
 
 {-# RULES
 "properFraction/Float->(Int24,Float)"
@@ -203,7 +196,7 @@ instance FiniteBits Int24 where
     ceiling  = (fromIntegral :: Int -> Int24) . (ceiling :: Float -> Int)
 "round/Float->Int24"
     round    = (fromIntegral :: Int -> Int24) . (round  :: Float -> Int)
-    #-}
+  #-}
 
 {-# RULES
 "properFraction/Double->(Int24,Double)"
@@ -218,19 +211,10 @@ instance FiniteBits Int24 where
     ceiling  = (fromIntegral :: Int -> Int24) . (ceiling :: Double -> Int)
 "round/Double->Int24"
     round    = (fromIntegral :: Int -> Int24) . (round  :: Double -> Int)
-    #-}
+  #-}
 
 instance Storable Int24 where
   sizeOf _ = 3
   alignment _ = 3
   peek p = fmap fromIntegral $ peek ((castPtr p) :: Ptr Word24)
   poke p v = poke (castPtr p :: Ptr Word24) (fromIntegral v)
-
-#if MIN_VERSION_base(4,7,0)
-primBool :: Int# -> Bool
-primBool x = tagToEnum# x
-#else
-primBool :: Bool -> Bool
-primBool = id
-#endif
-
