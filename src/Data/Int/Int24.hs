@@ -159,7 +159,7 @@ instance Bits Int24 where
     (I24# x#) `unsafeShiftL` (I# i#) = I24# (narrow24Int# (x# `uncheckedIShiftL#` i#))
     (I24# x#) `shiftR`       (I# i#) = I24# (x# `iShiftRA#` i#)
     (I24# x#) `unsafeShiftR` (I# i#) = I24# (x# `uncheckedIShiftRA#` i#)
-    (I24# x#) `rotate` i
+    (I24# x#) `rotate` i@(I# i#)
         | isTrue# (i'# ==# 0#) = I24# x#
         | otherwise = I24# (narrow24Int# (word2Int# ((x'# `uncheckedShiftL#` i'#) `or#`
                                          (x'# `uncheckedShiftRL#` (24# -# i'#)))))
@@ -175,8 +175,10 @@ instance Bits Int24 where
 
 instance FiniteBits Int24 where
     finiteBitSize _ = 24
+#if !MIN_VERSION_base(4,8,0)
     countLeadingZeros  (I24# x#) = I# (word2Int# (clz24# (int2Word# x#)))
     countTrailingZeros (I24# x#) = I# (word2Int# (ctz24# (int2Word# x#)))
+#endif
 
 {-# RULES
 "fromIntegral/Word8->Int24"   fromIntegral = \(W8# x#) -> I24# (word2Int# x#)

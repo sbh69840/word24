@@ -164,8 +164,10 @@ instance Bits Word24 where
 
 instance FiniteBits Word24 where
     finiteBitSize _ = 24
+#if !MIN_VERSION_base(4,8,0)
     countLeadingZeros  (W24# x#) = I# (word2Int# (clz24# x#))
     countTrailingZeros (W24# x#) = I# (word2Int# (ctz24# x#))
+#endif
 
 -- | Swap bytes in 'Word24'.
 byteSwap24 :: Word24 -> Word24

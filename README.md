@@ -1,4 +1,5 @@
-[![Build Status](https://secure.travis-ci.org/JohnLato/word24.png?branch=master)](http://travis-ci.org/JohnLato/word24)
+[![Build Status](https://secure.travis-ci.org/winterland1989/word24.png?branch=master)](http://travis-ci.org/winterland1989/word24)
+[![Hackage](https://img.shields.io/hackage/v/word24.svg?style=flat)](http://hackage.haskell.org/package/word24)
 
 This library implements 24-bit word and int types suitable for use in vector
 processing.
