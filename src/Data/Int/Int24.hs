@@ -36,6 +36,8 @@ import GHC.Show
 import GHC.Ptr
 import GHC.Err
 
+import Control.DeepSeq
+
 #if __GLASGOW_HASKELL__ >= 702
 #define TOINT integerToInt
 #else
@@ -49,8 +51,10 @@ import GHC.Err
 -- Int24 is represented in the same way as Int. Operations may assume
 -- and must ensure that it holds only values from its logical range.
 
+-- | 24-bit signed integer type
 data Int24 = I24# Int# deriving (Eq, Ord)
--- ^ 24-bit signed integer type
+
+instance NFData Int24  where rnf !_ = ()
 
 -- the narrowings are primops in GHC; I don't have that luxury.
 -- if the 24th bit (from right) is on, the value is negative, so
@@ -155,15 +159,13 @@ instance Bits Int24 where
     (I24# x#) `unsafeShiftL` (I# i#) = I24# (narrow24Int# (x# `uncheckedIShiftL#` i#))
     (I24# x#) `shiftR`       (I# i#) = I24# (x# `iShiftRA#` i#)
     (I24# x#) `unsafeShiftR` (I# i#) = I24# (x# `uncheckedIShiftRA#` i#)
-    (I24# x#) `rotate` (I# i#)
-        | isTrue# (i'# ==# 0#)
-        = I24# x#
-        | otherwise
-        = I24# (narrow24Int# (word2Int# ((x'# `uncheckedShiftL#` i'#) `or#`
+    (I24# x#) `rotate` i
+        | isTrue# (i'# ==# 0#) = I24# x#
+        | otherwise = I24# (narrow24Int# (word2Int# ((x'# `uncheckedShiftL#` i'#) `or#`
                                          (x'# `uncheckedShiftRL#` (24# -# i'#)))))
-        where
+      where
         !x'# = narrow24Word# (int2Word# x#)
-        !i'# = word2Int# (int2Word# i# `and#` 15##)
+        !(I# i'#) = i `mod` 24
     bitSizeMaybe i             = Just (finiteBitSize i)
     bitSize i                  = finiteBitSize i
     isSigned _                 = True

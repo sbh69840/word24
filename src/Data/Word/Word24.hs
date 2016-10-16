@@ -37,12 +37,16 @@ import GHC.Word
 import GHC.Ptr
 import GHC.Err
 
+import Control.DeepSeq
+
 -- Word24 is represented in the same way as Word.  Operations may assume and
 -- must ensure that it holds only values in its logical range.
 
 -- | 24-bit unsigned integer type
 --
 data Word24 = W24# Word# deriving (Eq, Ord)
+
+instance NFData Word24 where rnf !_ = ()
 
 -- | narrowings represented as primop 'and#' in GHC.
 narrow24Word# :: Word# -> Word#
@@ -145,12 +149,12 @@ instance Bits Word24 where
         W24# (narrow24Word# (x# `uncheckedShiftL#` i#))
     (W24# x#) `shiftR`       (I# i#) = W24# (x# `shiftRL#` i#)
     (W24# x#) `unsafeShiftR` (I# i#) = W24# (x# `uncheckedShiftRL#` i#)
-    (W24# x#) `rotate`       (I# i#)
+    (W24# x#) `rotate`       i
         | isTrue# (i'# ==# 0#) = W24# x#
         | otherwise  = W24# (narrow24Word# ((x# `uncheckedShiftL#` i'#) `or#`
                                             (x# `uncheckedShiftRL#` (24# -# i'#))))
-        where
-            !i'# = word2Int# (int2Word# i# `and#` 15##)
+      where
+        !(I# i'#) = i `mod` 24
     bitSizeMaybe i            = Just (finiteBitSize i)
     bitSize i                 = finiteBitSize i
     isSigned _                = False

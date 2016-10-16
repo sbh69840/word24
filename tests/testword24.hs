@@ -81,15 +81,15 @@ prop_quot a b =
   quot a b == fromIntegral (quot (fromIntegral a :: Word32) (fromIntegral b :: Word32))
   where types = a :: Word24
 
-prop_rem a b = 
+prop_rem a b =
   rem a b == fromIntegral (rem (fromIntegral a :: Word32) (fromIntegral b :: Word32))
   where types = a :: Word24
 
-prop_div a b = 
+prop_div a b =
   div a b == fromIntegral (div (fromIntegral a :: Word32) (fromIntegral b :: Word32))
   where types = a :: Word24
 
-prop_mod a b = 
+prop_mod a b =
   mod a b == fromIntegral (mod (fromIntegral a :: Word32) (fromIntegral b :: Word32))
   where types = a :: Word24
 
@@ -121,7 +121,7 @@ prop_shiftR a = a < maxBound `div` 2 ==>
   (a * 2) `shift` (-1) == a
   where types = a :: Word24
 
-prop_shiftR2 a n = a `shiftR` n == a `shift` (negate n)
+prop_shiftR2 a n = n >= 0 ==> a `shiftR` n == a `shift` (negate n)
   where types = a :: Word24
 
 prop_shiftL_ident a = a `shiftL` 0 == a
@@ -210,15 +210,15 @@ prop_quotI a b =
   quot a b == fromIntegral (quot (fromIntegral a :: Int32) (fromIntegral b :: Int32))
   where types = a :: Int24
 
-prop_remI a b = 
+prop_remI a b =
   rem a b == fromIntegral (rem (fromIntegral a :: Int32) (fromIntegral b :: Int32))
   where types = a :: Int24
 
-prop_divI a b = 
+prop_divI a b =
   div a b == fromIntegral (div (fromIntegral a :: Int32) (fromIntegral b :: Int32))
   where types = a :: Int24
 
-prop_modI a b = 
+prop_modI a b =
   mod a b == fromIntegral (mod (fromIntegral a :: Int32) (fromIntegral b :: Int32))
   where types = a :: Int24
 
@@ -254,7 +254,7 @@ prop_shiftRI a = (a < maxBound `div` 2) && (a > minBound `div` 2) ==>
   (a * 2) `shift` (-1) == a
   where types = a :: Int24
 
-prop_shiftR2I a n = a `shiftR` n == a `shift` (negate n)
+prop_shiftR2I a n = n >= 0 ==> a `shiftR` n == a `shift` (negate n)
   where types = a :: Int24
 
 prop_rotateI a b = (a `rotate` b) `rotate` (negate b) == a
