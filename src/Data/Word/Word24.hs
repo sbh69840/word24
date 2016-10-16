@@ -11,15 +11,16 @@
 -- Word16, etc.
 --
 
--- #hide
 module Data.Word.Word24 (
   -- * Word24 type
     Word24(..)
   , byteSwap24
   -- * Internal helpers
   , narrow24Word#
+#if MIN_VERSION_base(4,8,0)
   , clz24#
   , ctz24#
+#endif
   , popCnt24#
   )
 
@@ -51,6 +52,7 @@ instance NFData Word24 where rnf !_ = ()
 narrow24Word# :: Word# -> Word#
 narrow24Word# = and# 0xFFFFFF##
 
+#if MIN_VERSION_base(4,8,0)
 -- | count leading zeros
 --
 clz24# :: Word# -> Word#
@@ -61,6 +63,7 @@ clz24# w# = clz# (or# (not# 0xFFFFFF##) w#)
 ctz24# :: Word# -> Word#
 ctz24# w# = let x = ctz16# (uncheckedShiftRL# w# 8#)
             in plusWord# x (timesWord# (int2Word# (eqWord# 16## x)) (ctz8# w#))
+#endif
 
 -- | the number of set bits
 --

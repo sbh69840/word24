@@ -13,11 +13,12 @@
 --
 -----------------------------------------------------------------------------
 
--- #hide
 module Data.Int.Int24 (
-    Int24(..),
-    narrow24Int#,
-    ) where
+  -- * Int24 type
+  Int24(..)
+  -- * Internal helper
+  , narrow24Int#
+  ) where
 
 import Data.Word.Word24
 
