@@ -1,4 +1,7 @@
-{-# LANGUAGE MagicHash, NoImplicitPrelude, BangPatterns, CPP #-}
+{-# LANGUAGE BangPatterns      #-}
+{-# LANGUAGE CPP               #-}
+{-# LANGUAGE MagicHash         #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -20,23 +23,23 @@ module Data.Int.Int24 (
   , narrow24Int#
   ) where
 
-import Data.Word.Word24
+import           Data.Bits
+import           Data.Maybe
+import           Data.Word.Word24
+import           Foreign.Storable
 
-import Data.Bits
-import Foreign.Storable
+import           GHC.Arr
+import           GHC.Base
+import           GHC.Enum
+import           GHC.Int
+import           GHC.Num
+import           GHC.Ptr
+import           GHC.Read
+import           GHC.Real
+import           GHC.Show
+import           GHC.Word
 
-import GHC.Base
-import GHC.Enum
-import GHC.Num
-import GHC.Real
-import GHC.Read
-import GHC.Arr
-import GHC.Word
-import GHC.Int
-import GHC.Show
-import GHC.Ptr
-
-import Control.DeepSeq
+import           Control.DeepSeq
 
 ------------------------------------------------------------------------
 -- type Int24

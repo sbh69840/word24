@@ -1,5 +1,7 @@
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE MagicHash, BangPatterns #-}
+{-# LANGUAGE BangPatterns      #-}
+{-# LANGUAGE CPP               #-}
+{-# LANGUAGE MagicHash         #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 
 -- |
 -- Module      : Data.Word.Word24
@@ -26,18 +28,21 @@ module Data.Word.Word24 (
 
 where
 
-import Data.Bits
-import Foreign.Storable
+import           Data.Bits
+import           Data.Maybe
+import           Foreign.Storable
 
-import GHC.Base
-import GHC.Enum
-import GHC.Num
-import GHC.Real
-import GHC.Arr
-import GHC.Word
-import GHC.Ptr
+import           GHC.Arr
+import           GHC.Base
+import           GHC.Enum
+import           GHC.Num
+import           GHC.Ptr
+import           GHC.Read
+import           GHC.Real
+import           GHC.Show
+import           GHC.Word
 
-import Control.DeepSeq
+import           Control.DeepSeq
 
 -- Word24 is represented in the same way as Word.  Operations may assume and
 -- must ensure that it holds only values in its logical range.
