@@ -18,14 +18,10 @@ Haskell compiler and appropriate build system.  This is most easily met
 by installing the Haskell Platform.  The following command will install
 the library:
 
-cabal install iteratee
+cabal install word24
 
 This library is pure Haskell, and should install on any system with a suitable
 Haskell compiler with no extra steps required.  In particular, POSIX-compatible,
 Mac OSX, and Windows should all be supported.
 
 INSTALLATION OPTIONS:
-
-This library supports the following cabal flags:
-  splitBase (default enabled): use the split-up base package.
-

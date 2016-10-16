@@ -58,4 +58,4 @@ benchmark bench24
 
 source-repository head
   type:     git
-  location: git@github.com:JohnLato/word24.git
+  location: git@github.com:winterland1989/word24.git
