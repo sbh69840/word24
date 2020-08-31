@@ -94,7 +94,7 @@ clz24# w# = clz32# (narrow24Word# w#) `minusWord#` 8##
 -- | count trailing zeros
 --
 ctz24# :: Word# -> Word#
-ctz24# w# = ctz# w#
+ctz24# w# = ctz# (w# `or#` 0x1000000##)
 #endif
 
 -- | the number of set bits

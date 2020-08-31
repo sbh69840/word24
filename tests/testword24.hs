@@ -370,6 +370,7 @@ tests = [
 #if MIN_VERSION_base(4,8,0)
     ,testProperty "binary countLeadingZeros" prop_clz
     ,testProperty "binary countTrailingZeros" prop_ctz
+    ,testProperty "binary countTrailingZeros 0" (prop_ctz (0::Word24))
 #endif
     ,testProperty "bit/testBit" (prop_bit_ident (0::Word24))
     ,testProperty "popCount"    (prop_popCount (0::Word24) (0::Word))
@@ -422,6 +423,7 @@ tests = [
 #if MIN_VERSION_base(4,8,0)
     ,testProperty "binary countLeadingZeros" prop_clzI
     ,testProperty "binary countTrailingZeros" prop_ctzI
+    ,testProperty "binary countTrailingZeros 0" (prop_ctzI (0::Int24))
 #endif
     ,testProperty "bit/testBit" (prop_bit_ident (0::Int24))
     ,testProperty "popCount"    (prop_popCount (0::Int24) (0::Int))
