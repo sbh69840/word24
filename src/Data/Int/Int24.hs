@@ -37,13 +37,14 @@ import           Foreign.Storable
 import           GHC.Arr
 import           GHC.Base
 import           GHC.Enum
-import           GHC.Int
-import           GHC.Num
+import           GHC.Int.Compat
+import           GHC.Integer (smallInteger, integerToInt)
+import           GHC.Num hiding (integerToInt)
 import           GHC.Ptr
 import           GHC.Read
 import           GHC.Real
 import           GHC.Show
-import           GHC.Word
+import           GHC.Word.Compat
 
 import           Control.DeepSeq
 
