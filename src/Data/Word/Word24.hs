@@ -42,12 +42,13 @@ import           Foreign.Storable
 import           GHC.Arr
 import           GHC.Base
 import           GHC.Enum
-import           GHC.Num
+import           GHC.Num hiding (integerToWord)
 import           GHC.Ptr
 import           GHC.Read
 import           GHC.Real
 import           GHC.Show
-import           GHC.Word
+import           GHC.Word.Compat
+import           GHC.Integer (smallInteger, integerToWord)
 
 import           Control.DeepSeq
 
