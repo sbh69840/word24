@@ -1,3 +1,4 @@
+cabal-version:  3.0
 name:		    word24
 version:        2.0.1
 synopsis:       24-bit word and int types for GHC
@@ -5,12 +6,11 @@ description:	24-bit Word and Int data types.
 category:       Data
 author:		    Winterland, John W. Lato
 maintainer:	    Winterland, John W. Lato
-license:	    BSD3
+license:	    BSD-3-Clause
 license-file:	LICENSE
 homepage:       https://github.com/winterland1989/word24
 stability:	    stable
 
-cabal-version:  >= 1.10
 build-type:     Simple
 
 extra-source-files:
